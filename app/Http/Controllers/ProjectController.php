@@ -13,13 +13,58 @@ use App\Services\UserService;
 
 use App\Actions\ProjectActions;
 
+use App\Exports\ProjectExport;
+use Maatwebsite\Excel\Facades\Excel;
+
+use Yajra\DataTables\DataTables;
+
 class ProjectController extends Controller
 {
     /**
      * Display a listing of the resource.
      */
-    public function index(ProjectService $projectService, UserService $userService)
+    public function index(Request $request, ProjectService $projectService, UserService $userService)
     {
+        if ($request->ajax()) {
+            $projects = $projectService->getAll();
+            
+            return DataTables::of($projects)
+                ->addIndexColumn()
+                ->addColumn('status_badge', function ($project) {
+                    $statusText = match($project->status) {
+                        1 => 'Active',
+                        3 => 'Completed',
+                        4 => 'Rejected',
+                        default => 'Not Active',
+                    };
+                    $badgeClass = match($project->status) {
+                        1 => 'bg-green-100 text-green-800',
+                        3 => 'bg-blue-100 text-blue-800',
+                        4 => 'bg-red-100 text-red-800',
+                        default => 'bg-gray-100 text-gray-800',
+                    };
+                    return '<span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ' . $badgeClass . '">' . $statusText . '</span>';
+                })
+                ->addColumn('assigned_to', fn($p) => optional(optional($p->projectUser)->assigned)->name)
+                ->addColumn('creator', fn($p) => optional(optional($p->projectUser)->creator)->name)
+                ->addColumn('action', function ($project) {
+                    $buttons = '<a href="' . route('projects.show', $project->id) . '" class="text-indigo-600 hover:text-indigo-900 mr-2">View</a>';
+    
+                    if (optional($project->projectUser->creator)->id == auth()->id() && $project->status !== 3) {
+                        $buttons .= '<a href="' . route('projects.edit', $project->id) . '" class="text-green-600 hover:text-green-900 mr-2">Edit</a>';
+                        $buttons .= '
+                            <form action="' . route('projects.destroy', $project->id) . '" method="POST" class="inline-block" onsubmit="return confirm(\'Are you sure?\')">
+                                ' . csrf_field() . method_field('DELETE') . '
+                                <button type="submit" class="text-red-600 hover:text-red-900">Delete</button>
+                            </form>';
+                    }
+    
+                    return $buttons;
+                })
+                ->rawColumns(['status_badge', 'action'])
+                ->make(true);
+        }
+    
         $projects = $projectService->getAll(10);
         $users = $userService->AllUsers();
         return view('projects.index', compact('projects', 'users'));
@@ -123,5 +168,9 @@ class ProjectController extends Controller
         $projectActions->approvalProject($request);
 
         return redirect()->route('projects.index')->with('success', 'Project updated successfully.');
+    }
+    public function export(ProjectService $projectService)
+    {
+        return Excel::download(new ProjectExport($projectService), 'projects.xlsx');
     }
 }

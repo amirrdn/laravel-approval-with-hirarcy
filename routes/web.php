@@ -36,8 +36,13 @@ Route::middleware('auth')->group(function () {
     Route::resource('/roles', RoleController::class)
         ->middleware('permission:manage roles');
 
+        Route::get('/users/datatable', [UserController::class, 'datatable'])->name('datatable.users');
+        Route::get('/users/export', [UserController::class, 'export'])->name('export.users');
+        Route::post('/users/import', [UserController::class, 'import'])->name('import.users');
     Route::resource('/users', UserController::class)
         ->middleware('permission:manage users');
+    
+    Route::get('/projects/export', [ProjectController::class, 'export'])->name('export.projects');
     Route::resource('/projects', ProjectController::class)->middleware('auth');
     Route::post('/projects/{id}', [ProjectController::class, 'approval'])
     ->name('users.assign.form')->middleware('auth');

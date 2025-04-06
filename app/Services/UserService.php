@@ -5,9 +5,13 @@ use App\Models\User;
 
 class UserService{
 
-    public function AllUsers()
+    public function AllUsers($paginate = NULL)
     {
-        return User::with('roles')->get();
+        if($paginate){
+            return User::with('roles')->paginate($paginate);
+        }else{
+            return User::with('roles')->get();
+        }
     }
     public function UserById(string $id)
     {

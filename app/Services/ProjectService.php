@@ -5,21 +5,24 @@ use App\Models\Project;
 use App\Models\User;
 class ProjectService{
 
-    public function getAll($paginate)
+    public function getAll($paginate = null)
     {
-        if (auth()->user()->hasRole('Administrator')) {
-            return Project::with('users')->paginate($paginate);
-        }else{
-            return Project::whereHas('projectUser.assigned', function ($query) {
-                $query->where(function ($query) {
-                    $query->where('user_id', (string) auth()->id())
-                    ->orWhere('assigned_to', (string) auth()->id());
+        $query = Project::query();
+
+        if (!auth()->user()->hasRole('Administrator')) {
+            $query->whereHas('projectUser.assigned', function ($subQuery) {
+                $subQuery->where(function ($q) {
+                    $q->where('user_id', auth()->id())
+                    ->orWhere('assigned_to', auth()->id());
                 });
-            })
-            ->with(['users', 'projectUser.assigned'])
-            ->paginate($paginate);
+            });
         }
+
+        $query->with(['users', 'projectUser.assigned']);
+
+        return $paginate ? $query->paginate($paginate) : $query->get();
     }
+
     
     public function usersHirarcy()
     {

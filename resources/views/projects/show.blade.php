@@ -15,177 +15,241 @@
 
     <div class="py-6">
         <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
-            <!-- Detail Project -->
             <div class="bg-white shadow rounded-lg p-6 mb-6">
-                <h3 class="text-lg font-semibold mb-4">Project Information</h3>
+                <div class="flex items-center justify-between mb-6">
+                    <h3 class="text-xl font-semibold text-gray-800">Informasi Proyek</h3>
+                    <span class="px-3 py-1 text-sm font-medium rounded-full
+                        @if($project->status == 1) bg-green-100 text-green-800
+                        @elseif($project->status == 3) bg-blue-100 text-blue-800
+                        @elseif($project->status == 4) bg-red-100 text-red-800
+                        @else bg-gray-100 text-gray-800 @endif">
+                        @php
+                            $statusText = match($project->status) {
+                                1 => 'Aktif',
+                                3 => 'Selesai',
+                                4 => 'Ditolak',
+                                default => 'Tidak Aktif',
+                            };
+                        @endphp
+                        {{ $statusText }}
+                    </span>
+                </div>
                 @php
                     $gridCols = $project->status == 3 || $project->projectUser->user_id == auth()->user()->id  ? 'grid-cols-1' : 'grid-cols-1 md:grid-cols-2';
                 @endphp
-                <div class="grid {{ $gridCols }} gap-x-8 gap-y-4 text-gray-700">
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div class="flex items-center justify-between">
-                            <label for="status" class="text-sm font-medium text-gray-700 w-1/2">Name</label>
-                            <input type="text" name="name_v" id="name_v"
-                                    class="pl-0 ml-1 w-1/2 bg-transparent border-0 border-b border-gray-400 focus:ring-0 focus:border-indigo-500 text-sm text-gray-800"
-                                    value="{{ $project->name }}" disabled>
-                        </div>
-                    
-                        <div>
-                            <div class="flex items-center justify-between">
-                                <label for="status" class="text-sm font-medium text-gray-700 w-1/2">Status</label>
-                                @php
-                                    $statusText = match($project->status) {
-                                        1 => 'Active',
-                                        3 => 'Completed',
-                                        4 => 'Rejected',
-                                        default => 'Not Active',
-                                    };
-                                @endphp
-                                <input type="text" name="status_v" id="status_v"
-                                    class="pl-0 ml-1 w-1/2 bg-transparent border-0 border-b border-gray-400 focus:ring-0 focus:border-indigo-500 text-sm text-gray-800"
-                                    value="{{ $statusText }}" disabled>
+                <div class="grid {{ $gridCols }} gap-x-8 gap-y-6">
+                    <div class="space-y-6">
+                        <div class="bg-gray-50 rounded-lg p-4">
+                            <h4 class="text-sm font-semibold text-gray-700 mb-3">Informasi Dasar</h4>
+                            <div class="space-y-4">
+                                <div class="flex items-center justify-between">
+                                    <label class="text-sm font-medium text-gray-600 w-1/2">Nama Proyek</label>
+                                    <span class="text-sm text-gray-800 w-1/2">{{ $project->name }}</span>
+                                </div>
+                                <div class="flex items-center justify-between">
+                                    <label class="text-sm font-medium text-gray-600 w-1/2">Pembuat</label>
+                                    <span class="text-sm text-gray-800 w-1/2">{{ $project->users[0]->name }} ({{ $project->users[0]->role->name }})</span>
+                                </div>
+                                <div class="flex items-center justify-between">
+                                    <label class="text-sm font-medium text-gray-600 w-1/2">Tanggal Mulai</label>
+                                    <span class="text-sm text-gray-800 w-1/2">{{ \Carbon\Carbon::parse($project->start_date)->translatedFormat('d F Y, H:i') }}</span>
+                                </div>
+                                <div class="flex items-center justify-between">
+                                    <label class="text-sm font-medium text-gray-600 w-1/2">Tanggal Selesai</label>
+                                    <span class="text-sm text-gray-800 w-1/2">{{ \Carbon\Carbon::parse($project->end_date)->translatedFormat('d F Y, H:i') }}</span>
+                                </div>
                             </div>
                         </div>
-                        <div class="flex items-center justify-between">
-                            <label for="status" class="text-sm font-medium text-gray-700 w-1/2">Creator</label>
-                            <input type="text" name="name_v" id="name_v"
-                                    class="pl-0 ml-1 w-1/2 bg-transparent border-0 border-b border-gray-400 focus:ring-0 focus:border-indigo-500 text-sm text-gray-800"
-                                    value="{{ $project->users[0]->name. ' ('.$project->users[0]->role->name.')' }}" disabled>
+                        <div class="bg-gray-50 rounded-lg p-4">
+                            <h4 class="text-sm font-semibold text-gray-700 mb-3">Deskripsi</h4>
+                            <p class="text-sm text-gray-800">{{ $project->description }}</p>
                         </div>
-                        @php
-                            $properties = json_decode($lastActivity?->properties, true);
-                            $oldAssigned = $properties['old']['assigned_to'] ?? '-';
-                        @endphp
-                        <div class="flex items-center justify-between">
-                            <label for="status" class="text-sm font-medium text-gray-700 w-1/2">Current Task</label>
-                            <input type="text" name="name_v" id="name_v"
-                                    class="pl-0 ml-1 w-1/2 bg-transparent border-0 border-b border-gray-400 focus:ring-0 focus:border-indigo-500 text-sm text-gray-800"
-                                    value="{{ $oldAssigned }}" disabled>
-                        </div>
-                        <div class="flex items-center justify-between">
-                            <label for="status" class="text-sm font-medium text-gray-700 w-1/2">Start Date</label>
-                            <input type="text" name="name_v" id="name_v"
-                                    class="pl-0 ml-1 w-1/2 bg-transparent border-0 border-b border-gray-400 focus:ring-0 focus:border-indigo-500 text-sm text-gray-800"
-                                    value="{{ $project->start_date }}" disabled>
-                        </div>
-                        <div class="flex items-center justify-between">
-                            <label for="status" class="text-sm font-medium text-gray-700 w-1/2">End Date</label>
-                            <input type="text" name="name_v" id="name_v"
-                                    class="pl-0 ml-1 w-1/2 bg-transparent border-0 border-b border-gray-400 focus:ring-0 focus:border-indigo-500 text-sm text-gray-800"
-                                    value="{{ $project->end_date }}" disabled>
-                        </div>
-                        <div class="flex items-center justify-between">
-                            <label for="status" class="text-sm font-medium text-gray-700 w-1/2">Description</label>
-                            <textarea type="text" name="name_v" id="name_v"
-                                    class="pl-0 ml-1 w-1/2 bg-transparent border-0 border-b border-gray-400 focus:ring-0 focus:border-indigo-500 text-sm text-gray-800"
-                            disabled>{{$project->description}}</textarea>
-                        </div>
-                        <div class="flex items-center justify-between">
-                            <label for="status" class="text-sm font-medium text-gray-700 w-1/2">Attachment</label>
+
+                        <div class="bg-gray-50 rounded-lg p-4">
+                            <h4 class="text-sm font-semibold text-gray-700 mb-3">Lampiran</h4>
                             @if ($project->attachment)
-                                <a href="{{ asset('storage/' . $project->attachment) }}" class="pl-0 ml-1 w-1/2 bg-transparent border-0 border-b border-gray-400 focus:ring-0 focus:border-indigo-500 text-sm text-blue-600 underline" target="_blank">Download PDF</a>
+                                <a href="{{ asset('storage/' . $project->attachment) }}" 
+                                   class="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-indigo-700 bg-indigo-100 hover:bg-indigo-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                                   target="_blank">
+                                    <svg class="h-4 w-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                                    </svg>
+                                    Download PDF
+                                </a>
                             @else
-                                <span class="pl-0 ml-1 w-1/2 bg-transparent border-0 border-b border-gray-400 focus:ring-0 focus:border-indigo-500 text-sm text-gray-800">No file</span>
+                                <span class="text-sm text-gray-500">Tidak ada file</span>
                             @endif
                         </div>
                     </div>
-                    <div>
-                        @if(($project->projectUser->user_id !== auth()->user()->id || $project->status === 4) && $project->status !== 3)
+
+                    @if(($project->projectUser->user_id !== auth()->user()->id || $project->status === 4) && $project->status !== 3)
+                    <div class="bg-gray-50 rounded-lg p-4">
+                        <h4 class="text-sm font-semibold text-gray-700 mb-3">Tindakan</h4>
                         <form method="POST" action="{{ route('users.assign.form', $project->id) }}" enctype="multipart/form-data">
                             @csrf
                             <input type="hidden" name="name" value="{{$project->name}}" />
                             <input type="hidden" name="description" value="{{$project->description}}" />
                             <input type="hidden" name="start_date" value="{{$project->start_date}}" />
                             <input type="hidden" name="end_date" value="{{$project->end_date}}" />
-                            <div class="md:col-span-2">
-                                <label class="block text-sm font-medium text-gray-700">Assign Users</label>
-                                <select name="assigned_to[]" multiple
-                                class="select2 mt-1 w-full rounded-md border-gray-300 shadow-sm focus:ring-indigo-500 focus:border-indigo-500">
-                                @if(count($users) > 0)
-                                @foreach($users as $user)
-                                <option value="{{ $user->id }}">
-                                            {{ $user->name }} ({{ $user->role->name }})
-                                        </option>
-                                    @endforeach
-                                @else
-                                @foreach($project->users as $user)
-                                
-                                <option value="{{$user->id}}">{{$user->name}}</option>
-                                @endforeach
-                                @endif
-                                </select>
-                                @error('assigned_to') <p class="text-red-600 text-sm mt-1">{{ $message }}</p> @enderror
-                            </div>
-                            <div class="md:col-span-2">
-                                <label class="block text-sm font-medium text-gray-700">Status</label>
-                                <select name="status"
-                                class="select2 mt-1 w-full rounded-md border-gray-300 shadow-sm focus:ring-indigo-500 focus:border-indigo-500">
-                                @if($project->status === 4)
-                                <option value="">Chose Option</option>
-                                <option value="5">Revisi</option>
-                                @else
-                                    @if(count($users) > 0 )
-                                    <option value="2">Accept</option>
-                                    @else
-                                    <option value="3">Complated</option>
-                                    @endif
-                                    <option value="4">Reject</option>
-                                @endif
-                                </select>
-                                @error('status') <p class="text-red-600 text-sm mt-1">{{ $message }}</p> @enderror
-                            </div>
-                            <div class="md:col-span-2">
-                                <label class="block text-sm font-medium text-gray-700">Description</label>
-                                <textarea name="description" rows="3"
-                                class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:ring-indigo-500 focus:border-indigo-500"></textarea>
-                            </div>
-                            <div class="mt-6 flex justify-end">
-                                <x-primary-button>Update Project</x-primary-button>
+                            
+                            <div class="space-y-4">
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">Tugaskan Pengguna</label>
+                                    <select name="assigned_to[]" multiple
+                                        class="select2 mt-1 w-full rounded-md border-gray-300 shadow-sm focus:ring-indigo-500 focus:border-indigo-500">
+                                        @if(count($users) > 0)
+                                            @foreach($users as $user)
+                                                <option value="{{ $user->id }}">
+                                                    {{ $user->name }} ({{ $user->role->name }})
+                                                </option>
+                                            @endforeach
+                                        @else
+                                            @foreach($project->users as $user)
+                                                <option value="{{$user->id}}">{{$user->name}}</option>
+                                            @endforeach
+                                        @endif
+                                    </select>
+                                    @error('assigned_to') 
+                                        <p class="mt-1 text-sm text-red-600">{{ $message }}</p> 
+                                    @enderror
+                                </div>
+
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">Status</label>
+                                    <select name="status"
+                                        class="mt-1 w-full rounded-md border-gray-300 shadow-sm focus:ring-indigo-500 focus:border-indigo-500">
+                                        @if($project->status === 4)
+                                            <option value="">Pilih Opsi</option>
+                                            <option value="5">Revisi</option>
+                                        @else
+                                            @if(count($users) > 0 )
+                                                <option value="2">Terima</option>
+                                            @else
+                                                <option value="3">Selesai</option>
+                                            @endif
+                                            <option value="4">Tolak</option>
+                                        @endif
+                                    </select>
+                                    @error('status') 
+                                        <p class="mt-1 text-sm text-red-600">{{ $message }}</p> 
+                                    @enderror
+                                </div>
+
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">Deskripsi</label>
+                                    <textarea name="description" rows="3"
+                                        class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:ring-indigo-500 focus:border-indigo-500"></textarea>
+                                </div>
+
+                                <div class="flex justify-end">
+                                    <button type="submit" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                                        Perbarui Proyek
+                                    </button>
+                                </div>
                             </div>
                         </form>
-                        @endif
                     </div>
+                    @endif
                 </div>
             </div>
             
 
-            <!-- Audit Trail -->
             <div class="bg-white shadow rounded-lg p-6">
-                <h3 class="text-lg font-semibold mb-4">Histories</h3>
+                <h3 class="text-lg font-semibold mb-4">Riwayat Perubahan</h3>
                 @if ($activities->isEmpty())
-                    <p class="text-gray-500">No changes recorded yet.</p>
+                    <div class="text-center py-8">
+                        <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                        </svg>
+                        <p class="mt-2 text-gray-500">Belum ada riwayat perubahan yang tercatat.</p>
+                    </div>
                 @else
-                    <div class="overflow-auto">
-                        <table class="table-auto w-full text-sm text-left text-gray-600">
-                            <thead class="bg-gray-100 text-xs uppercase">
-                                <tr>
-                                    <th class="px-4 py-2">Event</th>
-                                    <th class="px-4 py-2">User</th>
-                                    <th class="px-4 py-2">Old Values</th>
-                                    <th class="px-4 py-2">New Values</th>
-                                    <th class="px-4 py-2">Timestamp</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                @foreach ($activities as $activity)
-                                    <tr class="border-b">
-                                        <td class="px-4 py-2">{{ ucfirst($activity->event) }}</td>
-                                        <td class="px-4 py-2">
-                                            {{ optional($activity->causer)->name ?? 'System' }}
-                                        </td>
-                                        <td class="px-4 py-2 text-xs">
-                                            <pre class="whitespace-pre-wrap">
-                                                {{ json_encode($activity->properties['old'] ?? [], JSON_PRETTY_PRINT) }}
-                                            </pre>
-                                        </td>
-                                        <td class="px-4 py-2 text-xs">
-                                            <pre class="whitespace-pre-wrap">{{ json_encode($activity->properties['attributes'] ?? [], JSON_PRETTY_PRINT) }}</pre>
-                                        </td>
-                                        <td class="px-4 py-2">{{ $activity->created_at->format('Y-m-d H:i') }}</td>
-                                    </tr>
-                                @endforeach
-                            </tbody>
-                        </table>
+                    <div class="space-y-4">
+                        @foreach ($activities as $activity)
+                            <div class="border-l-4 border-indigo-500 pl-4 py-2">
+                                <div class="flex items-center justify-between">
+                                    <div class="flex items-center space-x-2">
+                                        <span class="px-2 py-1 text-xs font-semibold rounded-full 
+                                            @if($activity->event === 'created') bg-green-100 text-green-800
+                                            @elseif($activity->event === 'updated') bg-blue-100 text-blue-800
+                                            @elseif($activity->event === 'deleted') bg-red-100 text-red-800
+                                            @else bg-gray-100 text-gray-800 @endif">
+                                            {{ ucfirst($activity->event) }}
+                                        </span>
+                                        <span class="text-sm text-gray-600">
+                                            oleh {{ optional($activity->causer)->name ?? 'System' }}
+                                        </span>
+                                    </div>
+                                    <span class="text-xs text-gray-500">
+                                        {{ $activity->created_at->translatedFormat('d F Y, H:i') }}
+                                    </span>
+                                </div>
+                                
+                                @if(isset($activity->properties['old']) || isset($activity->properties['attributes']))
+                                    <div class="mt-2 grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        @if(isset($activity->properties['old']))
+                                            <div class="bg-gray-50 p-3 rounded">
+                                                <h4 class="text-xs font-semibold text-gray-500 mb-1">Nilai Sebelumnya</h4>
+                                                <div class="text-sm">
+                                                    @foreach($activity->properties['old'] as $key => $value)
+                                                        <div class="mb-1">
+                                                            <span class="font-medium">{{ ucfirst(str_replace('_', ' ', $key)) }}:</span>
+                                                            @if($key === 'status')
+                                                                @php
+                                                                    $statusLabel = match($value) {
+                                                                        1 => 'Aktif',
+                                                                        2 => 'Diterima',
+                                                                        3 => 'Selesai',
+                                                                        4 => 'Ditolak',
+                                                                        5 => 'Revisi',
+                                                                        default => 'Tidak Aktif',
+                                                                    };
+                                                                @endphp
+                                                                <span class="text-gray-600">{{ $statusLabel }}</span>
+                                                            @elseif(in_array($key, ['start_date', 'end_date', 'created_at', 'updated_at']))
+                                                                <span class="text-gray-600">{{ \Carbon\Carbon::parse($value)->translatedFormat('d F Y, H:i') }}</span>
+                                                            @else
+                                                                <span class="text-gray-600">{{ is_array($value) ? json_encode($value) : $value }}</span>
+                                                            @endif
+                                                        </div>
+                                                    @endforeach
+                                                </div>
+                                            </div>
+                                        @endif
+                                        
+                                        @if(isset($activity->properties['attributes']))
+                                            <div class="bg-gray-50 p-3 rounded">
+                                                <h4 class="text-xs font-semibold text-gray-500 mb-1">Nilai Baru</h4>
+                                                <div class="text-sm">
+                                                    @foreach($activity->properties['attributes'] as $key => $value)
+                                                        <div class="mb-1">
+                                                            <span class="font-medium">{{ ucfirst(str_replace('_', ' ', $key)) }}:</span>
+                                                            @if($key === 'status')
+                                                                @php
+                                                                    $statusLabel = match($value) {
+                                                                        1 => 'Aktif',
+                                                                        2 => 'Diterima',
+                                                                        3 => 'Selesai',
+                                                                        4 => 'Ditolak',
+                                                                        5 => 'Revisi',
+                                                                        default => 'Tidak Aktif',
+                                                                    };
+                                                                @endphp
+                                                                <span class="text-gray-600">{{ $statusLabel }}</span>
+                                                            @elseif(in_array($key, ['start_date', 'end_date', 'created_at', 'updated_at']))
+                                                                <span class="text-gray-600">{{ \Carbon\Carbon::parse($value)->translatedFormat('d F Y, H:i') }}</span>
+                                                            @else
+                                                                <span class="text-gray-600">{{ is_array($value) ? json_encode($value) : $value }}</span>
+                                                            @endif
+                                                        </div>
+                                                    @endforeach
+                                                </div>
+                                            </div>
+                                        @endif
+                                    </div>
+                                @endif
+                            </div>
+                        @endforeach
                     </div>
                 @endif
             </div>

@@ -15,53 +15,51 @@
                 <div class="bg-green-100 text-green-800 p-4 mb-4 rounded-md">{{ session('success') }}</div>
             @endif
 
-            <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
-                <table class="table-auto w-full">
-                    <thead class="bg-gray-100">
-                        <tr>
-                            <th class="px-4 py-2 text-left">Nama Role</th>
-                            <th class="px-4 py-2">Permissions</th>
-                            <th class="px-4 py-2">Aksi</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @php
-                        function renderRoleRows($roles, $level = 0) {
-                            foreach ($roles as $role) {
-                                echo '<tr class="border-b '.($level > 0 ? 'bg-gray-50' : '').'">';
-                                echo '<td class="px-4 py-2 '.($level > 0 ? 'pl-'.($level * 6) : '').' text-sm text-gray-700">';
-                                echo str_repeat('↳ ', $level) . $role->name . '</td>';
-
-                                echo '<td class="px-4 py-2">';
-                                foreach ($role->permissions as $permission) {
-                                    echo '<span class="inline-block bg-gray-200 text-gray-800 text-xs px-2 py-1 rounded mr-1 mb-1">'
-                                        . $permission->name . '</span>';
-                                }
-                                echo '</td>';
-
-                                echo '<td class="px-4 py-2">';
-                                if (auth()->user()->can('manage roles')) {
-                                    echo '<a href="'.route('roles.edit', $role->id).'" class="text-indigo-600 hover:text-indigo-900">Edit</a>';
-                                    echo '<form action="'.route('roles.destroy', $role->id).'" method="POST" class="inline-block ml-2" onsubmit="return confirm(\'Yakin ingin hapus role ini?\')">';
-                                    echo csrf_field() . method_field('DELETE');
-                                    echo '<button type="submit" class="text-red-600 hover:text-red-800">Hapus</button>';
-                                    echo '</form>';
-                                }
-                                echo '</td>';
-                                echo '</tr>';
-
-                                if ($role->children && $role->children->count()) {
-                                    renderRoleRows($role->children, $level + 1);
-                                }
-                            }
+            <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg p-6">
+                @php
+                function renderRoleTree($roles, $level = 0) {
+                    echo '<ul class="'.($level === 0 ? 'space-y-3' : 'ml-6 mt-2 space-y-2').'">';
+                    foreach ($roles as $role) {
+                        echo '<li class="relative pl-5">';
+                        echo '<div class="flex items-start group hover:bg-gray-50 rounded-lg p-2">';
+                        if ($level > 0) {
+                            echo '<div class="absolute left-0 -ml-px h-full w-0.5 bg-gray-200"></div>';
                         }
-                    @endphp
-                    @php renderRoleRows($roles); @endphp
-                    </tbody>
-                    
-                </table>
+                        echo '<div class="absolute left-0 top-3 -ml-px h-3 w-3 rounded-full border-2 border-indigo-500 bg-white"></div>';
+                        
+                        echo '<div class="flex-1">';
+                        echo '<div class="flex items-center space-x-3">';
+                        echo '<span class="text-gray-900 font-medium">' . $role->name . '</span>';
+                        echo '<div class="flex flex-wrap gap-1">';
+                        foreach ($role->permissions as $permission) {
+                            echo '<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-indigo-100 text-indigo-800">'
+                                . $permission->name . '</span>';
+                        }
+                        echo '</div>';
+                        echo '</div>';
+                        
+                        if (auth()->user()->can('manage roles')) {
+                            echo '<div class="mt-2 flex space-x-3">';
+                            echo '<a href="'.route('roles.edit', $role->id).'" class="text-sm text-indigo-600 hover:text-indigo-900">Edit</a>';
+                            echo '<form action="'.route('roles.destroy', $role->id).'" method="POST" class="inline-block" onsubmit="return confirm(\'Yakin ingin hapus role ini?\')">';
+                            echo csrf_field() . method_field('DELETE');
+                            echo '<button type="submit" class="text-sm text-red-600 hover:text-red-800">Hapus</button>';
+                            echo '</form>';
+                            echo '</div>';
+                        }
+                        echo '</div>';
+                        echo '</div>';
+                        
+                        if ($role->children && $role->children->count()) {
+                            renderRoleTree($role->children, $level + 1);
+                        }
+                        echo '</li>';
+                    }
+                    echo '</ul>';
+                }
+                @endphp
+                @php renderRoleTree($roles); @endphp
             </div>
-
         </div>
     </div>
 </x-app-layout>

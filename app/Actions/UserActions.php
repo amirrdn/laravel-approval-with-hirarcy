@@ -16,7 +16,7 @@ class UserActions{
         $this->userservice = $userservice;
     }
 
-    public function storeUser(array $data)
+    public function storeUser(object $data)
     {
         $user = User::create([
             'id'       => (string) Str::uuid(),

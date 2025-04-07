@@ -16,6 +16,8 @@ use Maatwebsite\Excel\Facades\Excel;
 use App\Imports\UsersImport;
 use Yajra\DataTables\Facades\DataTables;
 
+use Inertia\Inertia;
+
 
 class UserController extends Controller
 {
@@ -28,9 +30,14 @@ class UserController extends Controller
     {
         $this->roleService = $roleService;
     }
-    public function index()
+    public function index(Request $request)
     {        
-        return view('users.index');
+        return Inertia::render('Users/Index', [
+            'filters' => $request->only('search'),
+            'csrf_token' => csrf_token(),
+            'canManageUsers' => \Auth::user()->can('manage users'),
+            'canExport' => \Auth::user()->can('export users'),
+        ]);
     }
 
     /**
@@ -39,8 +46,9 @@ class UserController extends Controller
     public function create()
     {
         $roles = $this->roleService->AllRoles();
-        $classess = $this->roleService;
-        return view('users.create', compact('roles','classess'));
+        return Inertia::render('Users/Create', [
+            'roles' => $roles,
+        ]);
     }
 
     /**
@@ -52,13 +60,11 @@ class UserController extends Controller
             'name' => 'required',
             'email' => 'required|email|unique:users',
             'password' => 'required|min:6',
-            'roles' => 'array',
             'position' => 'nullable|string|max:255',
             'hire_date' => 'nullable|date',
-            'is_active' => 'required|boolean',
         ]);
-
-        $roleId = $this->roleService->RoleByName($request->role);
+        $roleName = $this->roleService->RoleById($request->role);
+        $roleId = $this->roleService->RoleByName($roleName->name);
         $request->merge([
             'roleId' => $roleId->id
         ]);
@@ -83,8 +89,11 @@ class UserController extends Controller
     {
         $roles = $this->roleService->AllRoles();
         $user = $userservice->UserById($id);
-        $classess = $this->roleService;
-        return view('users.edit', compact('user', 'roles', 'classess'));
+        
+        return Inertia::render('Users/Edit', [
+            'user' => $user,
+            'roles' => $roles,
+        ]);
     }
 
     /**
@@ -102,14 +111,15 @@ class UserController extends Controller
             'hire_date' => 'nullable|date',
             'is_active' => 'required|boolean',
         ]);
-
-        $roleId = $this->roleService->RoleByName($request->role);
+        $roleName = $this->roleService->RoleById($request->role);
+        $roleId = $this->roleService->RoleByName($roleName->name);
 
         $request->merge([
             'roleId' => $roleId->id,
             'id' => $id
         ]);
         $updateUser->UpdateUser($request);
+        
         return redirect()->route('users.index')->with('success', 'User updated.');
     }
 
@@ -150,12 +160,7 @@ class UserController extends Controller
                 })->implode(' ');
             })
             ->addColumn('action', function ($user) {
-                $edit = '<a href="' . route('users.edit', $user->id) . '" class="text-indigo-600 hover:text-indigo-900">Edit</a>';
-                $delete = '<form action="' . route('users.destroy', $user->id) . '" method="POST" class="inline ml-2" onsubmit="return confirm(\'Yakin hapus user?\')">
-                                ' . csrf_field() . method_field('DELETE') . '
-                                <button class="text-red-600 hover:text-red-800">Hapus</button>
-                        </form>';
-                return $edit . $delete;
+                return route('users.edit', $user->id);
             })
             ->rawColumns(['roles', 'action'])
             ->make(true);

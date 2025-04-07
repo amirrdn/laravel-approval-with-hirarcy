@@ -58,6 +58,10 @@ class RoleService
     
     public function AllRoles()
     {
-        return Role::with('children')->where('parent', 0)->get();
+        return Role::with('children')->get();
+    }
+    public function RoleById(string $id)
+    {
+        return Role::findOrFail($id);
     }
 }

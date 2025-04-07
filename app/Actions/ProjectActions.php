@@ -88,11 +88,13 @@ class ProjectActions{
         $project = Project::with('users')->findOrFail($request->id);
 
         $project->fill([
-            'name' => $request->name,
-            'description' => $request->description,
-            'start_date' => $request->start_date,
-            'end_date' => $request->end_date,
+            'name' => $project->name,
+            'description' => $project->description,
+            'start_date' => $project->start_date,
+            'end_date' => $project->end_date,
             'status' => $request->status,
+            'attachment' => $project->attachment,
+            'assigned_to' => $request->assigned_to[0]
         ]);
 
         if ($request->hasFile('attachment')) {
@@ -104,7 +106,7 @@ class ProjectActions{
         }
 
         $project->save();
-
+        
         $syncData = [];
         foreach ($request->assigned_to as $index => $userId) {
             $syncData[$userId] = [
@@ -123,7 +125,7 @@ class ProjectActions{
             $changedAssigned['old']['assigned_to'] = auth()->user()->name;
             $changedAssigned['attributes']['assigned_to'] = $usernew->name;
         }
-
+        
         $textstatus = match ((int) $request->status) {
             3 => 'Approved',
             2 => 'Pending',

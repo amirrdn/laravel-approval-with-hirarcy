@@ -60,6 +60,6 @@ class ProjectService{
     {
         return Project::with(['projectUser' => function ($query) {
             $query->orderBy('created_at', 'desc');
-        }])->with('users')->findOrFail($id);
+        }])->with('users.role')->findOrFail($id);
     }
 }

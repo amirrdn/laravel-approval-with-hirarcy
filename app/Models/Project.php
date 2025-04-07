@@ -55,4 +55,8 @@ class Project extends Model
         ->where('subject_type', self::class)
         ->where('subject_id', $this->id);
     }
+    public function activitiesWithUser()
+    {
+        return $this->activities()->with('causer');
+    }
 }

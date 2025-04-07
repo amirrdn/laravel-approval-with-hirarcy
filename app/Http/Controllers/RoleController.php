@@ -8,6 +8,7 @@ use Spatie\Permission\Models\Permission;
 use App\Models\Role;
 use App\Services\RoleService;
 
+use Inertia\Inertia;
 class RoleController extends Controller
 {
     /**
@@ -22,8 +23,11 @@ class RoleController extends Controller
     public function index()
     {
         $this->authorizePermission('manage roles');
-        $roles = Role::with(['children', 'permissions'])->where('parent', 0)->get();
-        return view('roles.index', compact('roles'));
+        $roles = Role::with(['children', 'permissions'])->get();
+        return Inertia::render('Roles/Index', [
+            'csrf_token' => csrf_token(),
+            'roles' => $roles
+        ]);
     }
 
     /**
@@ -33,9 +37,13 @@ class RoleController extends Controller
     {
         $this->authorizePermission('manage roles');
         $permissions = Permission::all();
-        $role = Role::with('children')->where('parent', 0)->get();
+        $role = Role::with('children')->get();
         $classess = $this->roleService;
-        return view('roles.create', compact('permissions', 'role', 'classess'));
+        return Inertia::render('Roles/Create', [
+            'csrf_token' => csrf_token(),
+            'permissions' => $permissions,
+            'roles' => $role
+        ]);
     }
 
     /**
@@ -74,8 +82,13 @@ class RoleController extends Controller
         $this->authorizePermission('manage roles');
         $role = Role::with('permissions', 'children')->findOrFail($id);
         $permissions = Permission::all();
-        $allRoles = Role::with('children')->where('parent', 0)->get();
-        return view('roles.edit', compact('role', 'permissions', 'allRoles'));
+        $allRoles = Role::with('children')->get();
+        return Inertia::render('Roles/Edit', [
+            'csrf_token' => csrf_token(),
+            'permissions' => $permissions,
+            'roles' => $allRoles,
+            'role' => $role
+        ]);
     }
 
     /**

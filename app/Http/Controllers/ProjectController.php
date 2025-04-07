@@ -18,6 +18,8 @@ use Maatwebsite\Excel\Facades\Excel;
 
 use Yajra\DataTables\DataTables;
 
+use Inertia\Inertia;
+
 class ProjectController extends Controller
 {
     /**
@@ -25,49 +27,9 @@ class ProjectController extends Controller
      */
     public function index(Request $request, ProjectService $projectService, UserService $userService)
     {
-        if ($request->ajax()) {
-            $projects = $projectService->getAll();
-            
-            return DataTables::of($projects)
-                ->addIndexColumn()
-                ->addColumn('status_badge', function ($project) {
-                    $statusText = match($project->status) {
-                        1 => 'Active',
-                        3 => 'Completed',
-                        4 => 'Rejected',
-                        default => 'Not Active',
-                    };
-                    $badgeClass = match($project->status) {
-                        1 => 'bg-green-100 text-green-800',
-                        3 => 'bg-blue-100 text-blue-800',
-                        4 => 'bg-red-100 text-red-800',
-                        default => 'bg-gray-100 text-gray-800',
-                    };
-                    return '<span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ' . $badgeClass . '">' . $statusText . '</span>';
-                })
-                ->addColumn('assigned_to', fn($p) => optional(optional($p->projectUser)->assigned)->name)
-                ->addColumn('creator', fn($p) => optional(optional($p->projectUser)->creator)->name)
-                ->addColumn('action', function ($project) {
-                    $buttons = '<a href="' . route('projects.show', $project->id) . '" class="text-indigo-600 hover:text-indigo-900 mr-2">View</a>';
-    
-                    if (optional($project->projectUser->creator)->id == auth()->id() && $project->status !== 3) {
-                        $buttons .= '<a href="' . route('projects.edit', $project->id) . '" class="text-green-600 hover:text-green-900 mr-2">Edit</a>';
-                        $buttons .= '
-                            <form action="' . route('projects.destroy', $project->id) . '" method="POST" class="inline-block" onsubmit="return confirm(\'Are you sure?\')">
-                                ' . csrf_field() . method_field('DELETE') . '
-                                <button type="submit" class="text-red-600 hover:text-red-900">Delete</button>
-                            </form>';
-                    }
-    
-                    return $buttons;
-                })
-                ->rawColumns(['status_badge', 'action'])
-                ->make(true);
-        }
-    
-        $projects = $projectService->getAll(10);
-        $users = $userService->AllUsers();
-        return view('projects.index', compact('projects', 'users'));
+        return Inertia::render('Project/Index',[
+            'creator' => auth()->user()->id
+        ]);
     }
 
     /**
@@ -76,7 +38,9 @@ class ProjectController extends Controller
     public function create(ProjectService $projectService)
     {
         $users = $projectService->usersHirarcy();
-        return view('projects.create', compact('users'));
+        return Inertia::render('Project/Create', [
+            'users' => $users,
+        ]);
     }
 
     /**
@@ -90,11 +54,13 @@ class ProjectController extends Controller
             'start_date' => 'nullable|date',
             'end_date' => 'nullable|date|after_or_equal:start_date',
             'status' => 'required|in:0,1',
-            'assigned_to' => 'nullable|array',
+            'assigned_to' => 'required',
             'users.*' => 'exists:users,id',
             'attachment' => 'nullable|file|mimes:pdf|between:100,500',
         ]);
-
+        $request->merge([
+            'assigned_to' => [$request->input('assigned_to')]
+        ]);
         $projectActions->storeProject($request);
 
         return redirect()->route('projects.index')->with('success', 'Project created successfully.');
@@ -106,12 +72,18 @@ class ProjectController extends Controller
     public function show(string $id, ProjectService $projectService)
     {
         $project = $projectService->projectByID($id);
-        $activities = $project->activities()->get();
+        $activities = $project->activitiesWithUser()->get();
         $lastActivity = $project->activities()->latest()->first();
-
         $users = $projectService->usersHirarcy();
         
-        return view('projects.show', compact('project', 'activities', 'users', 'lastActivity'));
+        return Inertia::render('Project/Show', [
+            'project' => $project,
+            'users' => $users,
+            'activities' => $activities,
+            'lastActivity' => $lastActivity,
+            'userid' => auth()->user()->id,
+            'csrf_token' => csrf_token(),
+        ]);
     }
 
     /**
@@ -124,7 +96,12 @@ class ProjectController extends Controller
         $currentRole = auth()->user()->roles->first();
         $users = $projectService->usersHirarcy();
         $selectedUsers = $project->users->pluck('id')->toArray();
-        return view('projects.edit', compact('project', 'users', 'selectedUsers'));
+
+        return Inertia::render('Project/Edit', [
+            'project' => $project,
+            'users' => $users,
+            'selectedUsers' => $selectedUsers,
+        ]);
     }
 
     /**
@@ -143,7 +120,7 @@ class ProjectController extends Controller
             'attachment' => 'nullable|file|mimes:pdf|between:100,500',
         ]);
         $request->merge([
-            'id' => $id
+            'id' => $request->id
         ]);
         $projectActions->updateProject($request);
 
@@ -156,15 +133,18 @@ class ProjectController extends Controller
     public function destroy(string $id, ProjectActions $projectActions)
     {
         $projectActions->delete($id);
-        return redirect()->route('projects.index')->with('success', 'Project deleted successfully.');
+        return Inertia::render('Project/Index');
     }
-    public function approval(Request $request, string $id, ProjectActions $projectActions)
+    public function approval(Request $request, ProjectActions $projectActions)
     {
         $request->validate([
             'description' => 'nullable|string',
-            'assigned_to' => 'required|array',
+            'assigned_to' => 'required',
         ]);
-
+        $request->merge([
+            'id' => $request->id,
+            'assigned_to' => [$request->assigned_to]
+        ]);
         $projectActions->approvalProject($request);
 
         return redirect()->route('projects.index')->with('success', 'Project updated successfully.');
@@ -172,5 +152,36 @@ class ProjectController extends Controller
     public function export(ProjectService $projectService)
     {
         return Excel::download(new ProjectExport($projectService), 'projects.xlsx');
+    }
+    public function datatable(Request $request, ProjectService $projectService, UserService $userService)
+    {
+        $users = $userService->AllUsers();
+        $projects = $projectService->getAll();
+            
+        return DataTables::of($projects)
+            ->addIndexColumn()
+            ->addColumn('status_badge', function ($project) {
+                $statusText = match($project->status) {
+                    1 => 'Active',
+                    3 => 'Completed',
+                    4 => 'Rejected',
+                    default => 'Not Active',
+                };
+                $badgeClass = match($project->status) {
+                    1 => 'bg-green-100 text-green-800',
+                    3 => 'bg-blue-100 text-blue-800',
+                    4 => 'bg-red-100 text-red-800',
+                    default => 'bg-gray-100 text-gray-800',
+                };
+                return '<span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ' . $badgeClass . '">' . $statusText . '</span>';
+            })
+            ->addColumn('assigned_to', fn($p) => optional(optional($p->projectUser)->assigned)->name)
+            ->addColumn('creator', fn($p) => optional(optional($p->projectUser)->creator)->name)
+            
+            ->addColumn('action', function ($v) {
+                return route('projects.edit', $v->id);
+            })
+            ->rawColumns(['status_badge', 'action'])
+            ->make(true);
     }
 }

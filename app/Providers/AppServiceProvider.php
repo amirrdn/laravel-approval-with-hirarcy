@@ -2,8 +2,9 @@
 
 namespace App\Providers;
 
+use Illuminate\Support\Facades\Vite;
 use Illuminate\Support\ServiceProvider;
-use Illuminate\Support\Facades\Route;
+use Inertia\Inertia;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -20,14 +21,19 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        Route::middleware('web')
-            ->group(base_path('routes/web.php'));
-
-        Route::middleware('auth')
-            ->group(function () {
-                Route::get('/dashboard', function () {
-                    return view('dashboard');
-                })->name('dashboard');
-            });
+        Vite::prefetch(concurrency: 3);
+        Inertia::share([
+            'auth' => function () {
+                return [
+                    'user' => auth()->user(),
+                    'can' => [
+                        'manageUsers' => auth()->user()?->can('manage users'),
+                        'manageRoles' => auth()->user()?->can('manage roles'),
+                        'manageProjects' => auth()->user()?->can('manage posts'),
+                    ],
+                ];
+            },
+        ]);
+    
     }
 }
